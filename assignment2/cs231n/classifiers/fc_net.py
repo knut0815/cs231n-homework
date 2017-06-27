@@ -214,6 +214,14 @@ class FullyConnectedNet(object):
             self.params[weight_name] = np.random.normal(0.0, weight_scale, (prev_layer_dims, next_layer_dims))
             self.params[bias_name] = np.zeros(next_layer_dims)
 
+            # If using batch normalization, store the scale and shift params -
+            # remember that the outputs of the last layer should not be normalized
+            if self.use_batchnorm and i < self.num_layers:
+                gamma_name, beta_name = 'gamma{}'.format(i), 'beta{}'.format(i)
+
+                self.params[gamma_name] = np.ones(next_layer_dims)
+                self.params[beta_name] = np.ones(next_layer_dims)
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
