@@ -220,7 +220,7 @@ class FullyConnectedNet(object):
                 gamma_name, beta_name = 'gamma{}'.format(i), 'beta{}'.format(i)
 
                 self.params[gamma_name] = np.ones(next_layer_dims)
-                self.params[beta_name] = np.ones(next_layer_dims)
+                self.params[beta_name] = np.zeros(next_layer_dims)
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -248,6 +248,10 @@ class FullyConnectedNet(object):
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
 
+        print("Initializing ANN with", self.num_layers, "layers")
+        print("Parameters:")
+        print(sorted(self.params.keys()))
+        print("Number of bn_params:", len(self.bn_params))
 
     def loss(self, X, y=None):
         """
@@ -282,12 +286,19 @@ class FullyConnectedNet(object):
 
         input = X
         caches = []
-        for i in range(1, self.num_layers): # 1, 2, 3, 4
+        for i in range(1, self.num_layers): 
             weight_name, bias_name = 'W{}'.format(i), 'b{}'.format(i)
             w = self.params[weight_name]
             b = self.params[bias_name]
 
-            out, cache = affine_relu_forward(input, w, b)
+            out, cache = None, None
+
+            if self.use_batchnorm and i < self.num_layers:
+                gamma_name, beta_name = 'gamma{}'.format(i), 'beta{}'.format(i)
+                gamma, beta = self.params[gamma_name], self.params[beta_name]
+                out, cache = affine_bn_relu_forward(input, w, b, gamma, beta, self.bn_params[i - 1])
+            else:
+                out, cache = affine_relu_forward(input, w, b)
 
             # Store all of the cached variables for the backward pass
             caches.append(cache)
@@ -341,7 +352,7 @@ class FullyConnectedNet(object):
         # Backpropagation - keep track of the sum of all weights in the
         # network
         output = dx_out
-        for i in reversed(range(1, self.num_layers)): # 4, 3, 2, 1
+        for i in reversed(range(1, self.num_layers)):
             weight_name, bias_name = 'W{}'.format(i), 'b{}'.format(i)
             w = self.params[weight_name]
             b = self.params[bias_name]
@@ -349,7 +360,16 @@ class FullyConnectedNet(object):
             # Accumulate regularization loss
             weight_sum += np.sum(np.square(w))
 
-            dx, dw, db = affine_relu_backward(output, caches[i - 1])
+            dx, dw, db = None, None, None
+
+            if self.use_batchnorm:
+                gamma_name, beta_name = 'gamma{}'.format(i), 'beta{}'.format(i)
+                dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(output, caches[i - 1])
+
+                grads.update({gamma_name: dgamma,
+                              beta_name: dbeta})
+            else:
+                dx, dw, db = affine_relu_backward(output, caches[i - 1])
 
             # When using L2 regularization, every weight is decayed linearly towards
             # zero during backpropagation
