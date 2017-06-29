@@ -164,8 +164,7 @@ class FullyConnectedNet(object):
     def __init__(self, hidden_dims, input_dim=3*32*32, num_classes=10,
                  dropout=0, use_batchnorm=False, reg=0.0,
                  weight_scale=1e-2, dtype=np.float32, seed=None):
-        """
-        Initialize a new FullyConnectedNet.
+        '''Initialize a new FullyConnectedNet.
 
         Inputs:
         - hidden_dims: A list of integers giving the size of each hidden layer.
@@ -183,7 +182,8 @@ class FullyConnectedNet(object):
         - seed: If not None, then pass this random seed to the dropout layers. This
           will make the dropout layers deteriminstic so we can gradient check the
           model.
-        """
+
+        '''
         self.use_batchnorm = use_batchnorm
         self.use_dropout = dropout > 0
         self.reg = reg
@@ -248,17 +248,12 @@ class FullyConnectedNet(object):
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
 
-        print("Initializing ANN with", self.num_layers, "layers")
-        print("Parameters:")
-        print(sorted(self.params.keys()))
-        print("Number of bn_params:", len(self.bn_params))
-
     def loss(self, X, y=None):
-        """
-        Compute loss and gradient for the fully-connected net.
+        '''Compute loss and gradient for the fully-connected net.
 
         Input / output: Same as TwoLayerNet above.
-        """
+
+        '''
         X = X.astype(self.dtype)
         mode = 'test' if y is None else 'train'
 
@@ -286,7 +281,9 @@ class FullyConnectedNet(object):
 
         input = X
         caches = []
-        for i in range(1, self.num_layers): 
+        dropout_caches = [] # Store separately for now
+
+        for i in range(1, self.num_layers):
             weight_name, bias_name = 'W{}'.format(i), 'b{}'.format(i)
             w = self.params[weight_name]
             b = self.params[bias_name]
@@ -300,8 +297,19 @@ class FullyConnectedNet(object):
             else:
                 out, cache = affine_relu_forward(input, w, b)
 
-            # Store all of the cached variables for the backward pass
+            # Store all of the cached variables from the affine, ReLU, and (optional)
+            # batch normalization layers
             caches.append(cache)
+
+            if self.use_dropout:
+                dropout, dropout_cache = dropout_forward(out, self.dropout_param)
+
+                # If using dropout, make sure that the input to the next
+                # layer has the dropout mask applied
+                out = dropout
+
+                # Store the dropout layer cache
+                dropout_caches.append(dropout_cache)
 
             # The input to the next layer is the output of this layer
             input = out
@@ -361,6 +369,9 @@ class FullyConnectedNet(object):
             weight_sum += np.sum(np.square(w))
 
             dx, dw, db = None, None, None
+
+            if self.use_dropout:
+                pass #dx = dropout_backward(output, dropout_caches[i])
 
             if self.use_batchnorm:
                 gamma_name, beta_name = 'gamma{}'.format(i), 'beta{}'.format(i)
