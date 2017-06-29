@@ -136,18 +136,9 @@ class TwoLayerNet(object):
 
         return loss, grads
 
-        '''Questions:
-        1. Shouldn't the ReLU activation function be used in the final layer (prior
-           to evaluating the softmax loss)?
-        2. How do we update the gradients with respect to the parameters W1 and W2
-           with respect to L2 regularization?
-
-        '''
-
 
 class FullyConnectedNet(object):
-    """
-    A fully-connected neural network with an arbitrary number of hidden layers,
+    '''A fully-connected neural network with an arbitrary number of hidden layers,
     ReLU nonlinearities, and a softmax loss function. This will also implement
     dropout and batch normalization as options. For a network with L layers,
     the architecture will be
@@ -159,7 +150,8 @@ class FullyConnectedNet(object):
 
     Similar to the TwoLayerNet above, learnable parameters are stored in the
     self.params dictionary and will be learned using the Solver class.
-    """
+
+    '''
 
     def __init__(self, hidden_dims, input_dim=3*32*32, num_classes=10,
                  dropout=0, use_batchnorm=False, reg=0.0,
@@ -347,11 +339,11 @@ class FullyConnectedNet(object):
 
         # Compute softmax loss
         loss, dx = softmax_loss(scores, y)
-
         weight_sum = np.sum(np.square(w_final))
 
         # Compute the gradients with respect to the final output layer
         dx_out, dw_out, db_out = affine_backward(dx, caches[-1])
+
         dw_out += self.reg * w_final
 
         grads.update({'W{}'.format(self.num_layers): dw_out,
@@ -371,7 +363,10 @@ class FullyConnectedNet(object):
             dx, dw, db = None, None, None
 
             if self.use_dropout:
-                pass #dx = dropout_backward(output, dropout_caches[i])
+                dx = dropout_backward(output, dropout_caches[i - 1])
+
+                # Reset the upstream gradient
+                ouput = dx
 
             if self.use_batchnorm:
                 gamma_name, beta_name = 'gamma{}'.format(i), 'beta{}'.format(i)
