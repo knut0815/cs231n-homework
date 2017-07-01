@@ -240,6 +240,8 @@ class FullyConnectedNet(object):
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
 
+        print("Number of layers:", self.num_layers)
+
     def loss(self, X, y=None):
         '''Compute loss and gradient for the fully-connected net.
 
@@ -352,7 +354,7 @@ class FullyConnectedNet(object):
         # Backpropagation - keep track of the sum of all weights in the
         # network
         output = dx_out
-        for i in reversed(range(1, self.num_layers)):
+        for i in reversed(range(1, self.num_layers)): # 2 1
             weight_name, bias_name = 'W{}'.format(i), 'b{}'.format(i)
             w = self.params[weight_name]
             b = self.params[bias_name]
@@ -366,7 +368,7 @@ class FullyConnectedNet(object):
                 dx = dropout_backward(output, dropout_caches[i - 1])
 
                 # Reset the upstream gradient
-                ouput = dx
+                output = dx
 
             if self.use_batchnorm:
                 gamma_name, beta_name = 'gamma{}'.format(i), 'beta{}'.format(i)
