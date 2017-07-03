@@ -388,8 +388,7 @@ def dropout_backward(dout, cache):
 
 
 def conv_forward_naive(x, w, b, conv_param):
-    """
-    A naive implementation of the forward pass for a convolutional layer.
+    '''A naive implementation of the forward pass for a convolutional layer.
 
     The input consists of N data points, each with C channels, height H and
     width W. We convolve each input with F different filters, where each filter
@@ -409,13 +408,65 @@ def conv_forward_naive(x, w, b, conv_param):
       H' = 1 + (H + 2 * pad - HH) / stride
       W' = 1 + (W + 2 * pad - WW) / stride
     - cache: (x, w, b, conv_param)
-    """
+
+    '''
     out = None
     ###########################################################################
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    pass
+
+    N, C, H, W = x.shape
+    F, _, filter_height, filter_width = w.shape
+    stride, pad = conv_param['stride'], conv_param['pad']
+
+    # Check dimensions
+    assert (W + 2 * pad - filter_width) % stride == 0, 'width does not work'
+    assert (H + 2 * pad - filter_height) % stride == 0, 'height does not work'
+
+    # Create output
+    out_height = (H + 2 * pad - filter_height) // stride + 1
+    out_width = (W + 2 * pad - filter_width) // stride + 1
+    out = np.zeros((N, F, out_height, out_width), dtype=x.dtype)
+
+    # Print some information
+    print("Input shape:", x.shape)
+    print("Output shape:", out.shape)
+    print("Filter dimensions:", filter_width, "x", filter_height)
+    print("-" * 20)
+
+    # Perform a naive convolution, after padding the input
+    x_padded = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant')
+    print("New shape:", x_padded.shape)
+
+    for n in range(N):      # training examples
+        for f in range(F):  # kernels
+
+            print("Convolving with filter #", f)
+
+            start_xpos = min(pad, filter_width // 2)
+            start_ypos = min(pad, filter_height // 2)
+
+            for xpos in range(start_xpos, W, stride):
+                for ypos in range(start_ypos, H, stride):
+                    l_bnd = max(0, xpos - filter_width // 2)
+                    r_bnd = max(0, xpos + filter_width // 2)
+                    b_bnd = max(0, ypos + filter_height // 2)
+                    t_bnd = max(0, ypos - filter_height // 2)
+
+                    print("Centering filter window at:", xpos, ",", ypos)
+                    x_window = x_padded[n, :, l_bnd:r_bnd, t_bnd:b_bnd]
+                    w_window = w[f, :]
+
+                    print("X window shape:", x_window.shape)
+                    print("Filter shape:", w_window.shape)
+
+                    conv = np.sum( x_window * w_window )
+                    print(conv)
+
+            #out[i][j] = np.convolve(x_i, w_j)
+
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
