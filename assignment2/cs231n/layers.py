@@ -439,32 +439,27 @@ def conv_forward_naive(x, w, b, conv_param):
     x_padded = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant')
     print("New shape:", x_padded.shape)
 
-    for n in range(N):      # training examples
-        for f in range(F):  # kernels
+    for n in range(N):                             # for each training example...
+        for f in range(F):                         # for each filter kernel...
+            for pixel_y in range(out_height):      # for each pixel along the y-axis of the output image...
+                for pixel_x in range(out_width):   # for each pixel along the x-axis of the output image...
 
-            print("Convolving with filter #", f)
+                    # bottom and top boundaries of filter window
+                    # in input image
+                    b_bnd = stride * pixel_y
+                    t_bnd = stride * pixel_y + filter_height
 
-            start_xpos = min(pad, filter_width // 2)
-            start_ypos = min(pad, filter_height // 2)
+                    # left and right boundaries of filter window
+                    # in input image
+                    l_bnd = stride * pixel_x
+                    r_bnd = stride * pixel_x + filter_width
 
-            for xpos in range(start_xpos, W, stride):
-                for ypos in range(start_ypos, H, stride):
-                    l_bnd = max(0, xpos - filter_width // 2)
-                    r_bnd = max(0, xpos + filter_width // 2)
-                    b_bnd = max(0, ypos + filter_height // 2)
-                    t_bnd = max(0, ypos - filter_height // 2)
+                    x_slice = x_padded[n, :, b_bnd:t_bnd, l_bnd:r_bnd]
+                    w_slice = w[f, :]
 
-                    print("Centering filter window at:", xpos, ",", ypos)
-                    x_window = x_padded[n, :, l_bnd:r_bnd, t_bnd:b_bnd]
-                    w_window = w[f, :]
+                    conv = np.sum( x_slice * w_slice ) + b[f]
 
-                    print("X window shape:", x_window.shape)
-                    print("Filter shape:", w_window.shape)
-
-                    conv = np.sum( x_window * w_window )
-                    print(conv)
-
-            #out[i][j] = np.convolve(x_i, w_j)
+                    out[n, f, pixel_y, pixel_x] = conv
 
 
     ###########################################################################
