@@ -429,15 +429,8 @@ def conv_forward_naive(x, w, b, conv_param):
     out_width = (W + 2 * pad - filter_width) // stride + 1
     out = np.zeros((N, F, out_height, out_width), dtype=x.dtype)
 
-    # Print some information
-    print("Input shape:", x.shape)
-    print("Output shape:", out.shape)
-    print("Filter dimensions:", filter_width, "x", filter_height)
-    print("-" * 20)
-
     # Perform a naive convolution, after padding the input
     x_padded = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant')
-    print("New shape:", x_padded.shape)
 
     for n in range(N):                             # for each training example...
         for f in range(F):                         # for each filter kernel...
@@ -470,8 +463,7 @@ def conv_forward_naive(x, w, b, conv_param):
 
 
 def conv_backward_naive(dout, cache):
-    """
-    A naive implementation of the backward pass for a convolutional layer.
+    '''A naive implementation of the backward pass for a convolutional layer.
 
     Inputs:
     - dout: Upstream derivatives.
@@ -481,12 +473,48 @@ def conv_backward_naive(dout, cache):
     - dx: Gradient with respect to x
     - dw: Gradient with respect to w
     - db: Gradient with respect to b
-    """
+
+    '''
     dx, dw, db = None, None, None
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+
+    # http://www.jefkine.com/general/2016/09/05/backpropagation-in-convolutional-neural-networks/
+    # https://grzegorzgwardys.wordpress.com/2016/04/22/8/
+    # http://cs231n.github.io/convolutional-networks/
+    x, w, b, conv_param = cache
+
+    N, C, H, W = x.shape
+    F, _, filter_height, filter_width = w.shape
+    stride, pad = conv_param['stride'], conv_param['pad']
+    out_height, out_width = dout.shape[2], dout.shape[3]
+
+    dout_padded = np.pad(dout, ((0,), (0,), (pad,), (pad,)), 'constant')
+
+    for n in range(N):                             # for each training example...
+        for f in range(F):                         # for each filter kernel...
+            for pixel_y in range(out_height):      # for each pixel along the y-axis of the output image...
+                for pixel_x in range(out_width):   # for each pixel along the x-axis of the output image...
+
+                    # bottom and top boundaries of filter window
+                    # in input image
+                    b_bnd = stride * pixel_y
+                    t_bnd = stride * pixel_y + filter_height
+
+                    # left and right boundaries of filter window
+                    # in input image
+                    l_bnd = stride * pixel_x
+                    r_bnd = stride * pixel_x + filter_width
+
+                    x_slice = x_padded[n, :, b_bnd:t_bnd, l_bnd:r_bnd]
+                    w_slice = w[f, :]
+                    w_slice_rot =
+
+                    conv = np.sum( x_slice * w_slice ) + b[f]
+
+                    dx[n, f, pixel_y, pixel_x] = conv
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
