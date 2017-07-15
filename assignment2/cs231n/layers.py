@@ -507,11 +507,11 @@ def conv_backward_naive(dout, cache):
                     l_bnd = stride * pixel_x
                     r_bnd = stride * pixel_x + filter_width
 
-                    x_slice = x_padded[n, :, b_bnd:t_bnd, l_bnd:r_bnd]
+                    dout_slice = dout_padded[n, :, b_bnd:t_bnd, l_bnd:r_bnd]
                     w_slice = w[f, :]
-                    w_slice_rot =
+                    w_slice_rot = w_slice.T
 
-                    conv = np.sum( x_slice * w_slice ) + b[f]
+                    conv = np.sum( dout_slice * w_slice_rot ) #+ b[f]
 
                     dx[n, f, pixel_y, pixel_x] = conv
 
