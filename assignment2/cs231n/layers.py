@@ -490,12 +490,16 @@ def conv_backward_naive(dout, cache):
     stride, pad = conv_param['stride'], conv_param['pad']
     out_height, out_width = dout.shape[2], dout.shape[3]
 
-    dout_padded = np.pad(dout, ((0,), (0,), (pad,), (pad,)), 'constant')
+    x_padded = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant')
 
-    for n in range(N):                             # for each training example...
-        for f in range(F):                         # for each filter kernel...
-            for pixel_y in range(out_height):      # for each pixel along the y-axis of the output image...
-                for pixel_x in range(out_width):   # for each pixel along the x-axis of the output image...
+    dx = np.zeros(x.shape)
+    dw = np.zeros(w.shape)
+    db = np.zeros(b.shape)
+
+    for f in range(F):                                  # for each filter kernel...
+        for c in range(C):                              # for each color channel...
+            for pixel_y in range(filter_height):        # for each pixel along the y-axis of the filter...
+                for pixel_x in range(filter_width):     # for each pixel along the x-axis of the filter...
 
                     # bottom and top boundaries of filter window
                     # in input image
@@ -507,13 +511,32 @@ def conv_backward_naive(dout, cache):
                     l_bnd = stride * pixel_x
                     r_bnd = stride * pixel_x + filter_width
 
-                    dout_slice = dout_padded[n, :, b_bnd:t_bnd, l_bnd:r_bnd]
+                    x_slice = x_padded[:, c, b_bnd:t_bnd, l_bnd:r_bnd]
                     w_slice = w[f, :]
                     w_slice_rot = w_slice.T
+                    dout_slice = dout[:, f, : :]
 
-                    conv = np.sum( dout_slice * w_slice_rot ) #+ b[f]
+                    sub_xpad = x_padded[:, c, pixel_y:pixel_y + out_height * stride:stride, pixel_x:pixel_x + out_width * stride:stride]
+                    dw[f, c, pixel_y, pixel_x] = np.sum(dout[:, f, :, :] * sub_xpad)
 
-                    dx[n, f, pixel_y, pixel_x] = conv
+    for f in range(F):
+        db[f] = np.sum(dout[:, f, :, :])
+
+    for n in range(N):
+        for i in range(H):
+            for j in range(W):
+                for f in range(F):
+                    for k in range(out_height):
+                        for l in range(out_width):
+                            mask1 = np.zeros_like(w[f, :, :, :])
+                            mask2 = np.zeros_like(w[f, :, :, :])
+                            if (i + pad - k * stride) < filter_height and (i + pad - k * stride) >= 0:
+                                mask1[:, i + pad - k * stride, :] = 1.0
+                            if (j + pad - l * stride) < filter_width and (j + pad - l * stride) >= 0:
+                                mask2[:, :, j + pad - l * stride] = 1.0
+                            w_masked = np.sum(w[f, :, :, :] * mask1 * mask2, axis=(1, 2))
+
+                            dx[n, :, i, j] += dout[n, f, k, l] * w_masked
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -540,7 +563,35 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+
+    N, C, H, W = x.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    out_height = (H - pool_height) // stride + 1
+    out_width = (W - pool_width) // stride + 1
+    out = np.zeros((N, C, out_height, out_width))
+
+    for n in range(N):                             # for each training example...
+        for c in range(C):                         # for each color channel...
+            for pixel_y in range(out_height):      # for each pixel along the y-axis of the output image...
+                for pixel_x in range(out_width):   # for each pixel along the x-axis of the output image...
+
+                    # bottom and top boundaries of pooling window
+                    # in input image
+                    b_bnd = stride * pixel_y
+                    t_bnd = stride * pixel_y + pool_height
+
+                    # left and right boundaries of pooling window
+                    # in input image
+                    l_bnd = stride * pixel_x
+                    r_bnd = stride * pixel_x + pool_width
+
+                    x_slice = x[n, c, b_bnd:t_bnd, l_bnd:r_bnd]
+                    
+                    out[n, c, pixel_y, pixel_x] = np.max(x_slice)
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
