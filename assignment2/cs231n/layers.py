@@ -589,7 +589,7 @@ def max_pool_forward_naive(x, pool_param):
                     r_bnd = stride * pixel_x + pool_width
 
                     x_slice = x[n, c, b_bnd:t_bnd, l_bnd:r_bnd]
-                    
+
                     out[n, c, pixel_y, pixel_x] = np.max(x_slice)
 
     ###########################################################################
