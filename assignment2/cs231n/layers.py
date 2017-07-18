@@ -572,7 +572,6 @@ def max_pool_forward_naive(x, pool_param):
     out_height = (H - pool_height) // stride + 1
     out_width = (W - pool_width) // stride + 1
     out = np.zeros((N, C, out_height, out_width))
-    switches = np.zeros(out.shape)
 
     for n in range(N):                             # for each training example...
         for c in range(C):                         # for each color channel...
@@ -590,17 +589,13 @@ def max_pool_forward_naive(x, pool_param):
                     r_bnd = stride * pixel_x + pool_width
 
                     x_slice = x[n, c, b_bnd:t_bnd, l_bnd:r_bnd]
-                    switch_index = np.argmax(x_slice.reshape(np.prod(x_slice.shape)))
-
-                    print("x_slice:", x_slice.reshape(np.prod(x_slice.shape)))
-                    print("index of max:", switch_index)
 
                     out[n, c, pixel_y, pixel_x] = np.max(x_slice)
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, switches, pool_param)
+    cache = (x, pool_param)
     return out, cache
 
 
@@ -620,31 +615,23 @@ def max_pool_backward_naive(dout, cache):
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
 
-    x, switches, pool_param = cache
-
+    x, pool_param = cache
+    Hp = pool_param['pool_height']
+    Wp = pool_param['pool_width']
+    S = pool_param['stride']
     N, C, H, W = x.shape
-    pool_height = pool_param['pool_height']
-    pool_width = pool_param['pool_width']
-    stride = pool_param['stride']
+    H1 = (H - Hp) // S + 1
+    W1 = (W - Wp) // S + 1
 
-    out_height = switches.shape[2]
-    out_width = switches.shape[3]
-    switches = np.zeros(out.shape)
-
-    dx = np.zeros(x.shape)
-    for n in range(N):                             # for each training example...
-        for c in range(C):                         # for each color channel...
-            for pixel_y in range(out_height):      # for each pixel along the y-axis of the output image...
-                for pixel_x in range(out_width):   # for each pixel along the x-axis of the output image...
-
-                    argmax_index = switches[n, c, pixel_y, pixel_x]
-
-                    x_slice = x[n, c, b_bnd:t_bnd, l_bnd:r_bnd]
-                    x_slice = x_slice.reshape(np.prod(x_slice.shape)))
-                    x_slice[argmax_index] = 1.0;
-                    
-                    print("x_slice:", x_slice.reshape(np.prod(x_slice.shape)))
-                    print("index of max:", switch_index)
+    dx = np.zeros((N, C, H, W))
+    for nprime in range(N):
+        for cprime in range(C):
+            for k in range(H1):
+                for l in range(W1):
+                    x_pooling = x[nprime, cprime, k * S:k * S + Hp, l * S:l * S + Wp]
+                    maxi = np.max(x_pooling)
+                    x_mask = x_pooling == maxi
+                    dx[nprime, cprime, k * S:k * S + Hp, l * S:l * S + Wp] += dout[nprime, cprime, k, l] * x_mask
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
