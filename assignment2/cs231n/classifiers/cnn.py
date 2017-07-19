@@ -108,8 +108,8 @@ class ThreeLayerConvNet(object):
         ############################################################################
 
         c_out, c_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)  # Convolutional layer
-        h_out, h_cache = affine_relu_forward(conv_out, W2, b2);                     # Hidden affine layer
-        f_out, f_cache = affine_forward(hidden_out, W3, b3);                        # Final affine layer
+        h_out, h_cache = affine_relu_forward(c_out, W2, b2);                        # Hidden affine layer
+        f_out, f_cache = affine_forward(h_out, W3, b3);                             # Final affine layer
 
         scores = f_out
 
@@ -129,6 +129,20 @@ class ThreeLayerConvNet(object):
         ############################################################################
 
         loss, dx = softmax_loss(scores, y)
+
+        regularization_loss = 0.5 * self.reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)) + np.sum(np.square(W3)))
+        loss += regularization_loss
+
+        dx_f, dw_f, db_f = affine_backward(dx, f_cache)
+        dx_h, dw_h, db_h = affine_relu_backward(dx_f, h_cache)
+        dx_c, dw_c, db_c = conv_relu_pool_backward(dx_h, c_cache)
+
+        grads.update({'W1': dw_c,
+                      'b1': db_c,
+                      'W2': dw_h,
+                      'b2': db_h,
+                      'W3': dw_f,
+                      'b3': db_f})
 
         ############################################################################
         #                             END OF YOUR CODE                             #
